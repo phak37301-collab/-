@@ -1,7 +1,7 @@
 // ค่าตั้งต้นของแอป (ไม่มีความลับในไฟล์นี้ — PIN/LINE token อยู่ใน Apps Script)
 const CONFIG = {
   // URL ของ Apps Script Web app (ลงท้ายด้วย /exec)
-  API_URL: 'PASTE_APPS_SCRIPT_WEB_APP_URL_HERE',
+  API_URL: 'https://script.google.com/macros/s/AKfycbyKUnuDW7h1lawMrUWsadSNQnYaMs2KniJ3eNwTfO7ua-ZsmX2BmK9wm-C0LDrqWR2mKA/exec',
 
   POLL_MS: 20000,                       // หน้า admin รีเฟรชทุกกี่มิลลิวินาที
 
