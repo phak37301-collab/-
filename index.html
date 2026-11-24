@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>จองรถ / ส่งเอกสาร</title>
+<link rel="stylesheet" href="css/app.css">
+</head>
+<body>
+<main>
+  <h1>จองรถ / ส่งเอกสาร</h1>
+
+  <!-- ตั้งค่าครั้งแรก (จำไว้ในเครื่อง) -->
+  <section id="setup" class="card hidden">
+    <b>ครั้งแรก: เลือกชื่อและสังกัดของคุณ</b>
+    <label for="sName">ชื่อผู้จอง</label>
+    <input id="sName" list="nameList" autocomplete="off" placeholder="พิมพ์หรือเลือกชื่อ">
+    <datalist id="nameList"></datalist>
+    <label for="sDept">สังกัด</label>
+    <select id="sDept"></select>
+    <label for="sPhone">เบอร์โทร / ไลน์ (ไม่บังคับ)</label>
+    <input id="sPhone" placeholder="เบอร์โทรหรือ LINE ID">
+    <button id="saveProfile" class="btn block" style="margin-top:14px">บันทึก</button>
+  </section>
+
+  <section id="app" class="hidden">
+    <div class="card">
+      <div><b id="who"></b> <span id="whoDept" class="muted"></span></div>
+      <button id="editProfile" class="btn ghost" style="min-height:36px;margin-top:8px">เปลี่ยนชื่อ</button>
+    </div>
+
+    <form id="form" class="card" autocomplete="off">
+      <div class="row">
+        <div><label for="date">วันที่</label><input id="date" type="date" required></div>
+        <div><label for="time">เวลารับ</label><input id="time" type="time" required></div>
+      </div>
+
+      <label>ประเภท</label>
+      <div id="typeChips" class="chips"></div>
+
+      <label>ต้นทาง</label>
+      <div id="originChips" class="chips"></div>
+      <input id="origin" placeholder="หรือพิมพ์ต้นทางเอง">
+
+      <label>ปลายทาง</label>
+      <div id="destChips" class="chips"></div>
+      <input id="dest" placeholder="หรือพิมพ์ปลายทางเอง" required>
+
+      <label for="note">รายละเอียด (ถ้ามี)</label>
+      <textarea id="note" placeholder="เช่น ส่งถึงใคร ชั้นไหน ต้องรับสำเนากลับ"></textarea>
+
+      <details>
+        <summary>เพิ่มรายละเอียดอื่นๆ</summary>
+        <div class="row">
+          <div><label for="qty">จำนวน</label><input id="qty" inputmode="numeric" placeholder="1"></div>
+          <div><label for="unit">หน่วย</label><select id="unit"></select></div>
+        </div>
+        <label for="destContact">ผู้ติดต่อปลายทาง</label>
+        <input id="destContact">
+        <label for="destPhone">เบอร์ปลายทาง</label>
+        <input id="destPhone" inputmode="tel">
+        <label for="project">โครงการ</label>
+        <input id="project">
+      </details>
+    </form>
+
+    <h2>รายการของฉัน</h2>
+    <div id="mine"><p class="muted">กำลังโหลด…</p></div>
+  </section>
+</main>
+
+<div id="bar" class="sticky-bar hidden"><button id="submit" class="btn block">ส่งคำขอ</button></div>
+
+<script src="js/config.js"></script>
+<script src="js/api.js"></script>
+<script src="js/user.js"></script>
+</body>
+</html>

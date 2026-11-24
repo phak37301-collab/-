@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>จัดคิวรถ</title>
+<link rel="stylesheet" href="../css/app.css">
+</head>
+<body>
+<main>
+  <h1>จัดคิวรถ</h1>
+
+  <section id="login" class="card">
+    <label for="pin">PIN ผู้จัดคิว</label>
+    <input id="pin" type="password" inputmode="numeric" autocomplete="current-password">
+    <button id="enter" class="btn block" style="margin-top:14px">เข้าสู่ระบบ</button>
+  </section>
+
+  <section id="board" class="hidden">
+    <div class="row" style="align-items:center;margin-bottom:8px">
+      <span id="updated" class="muted"></span>
+      <label style="margin:0;flex:0 0 auto"><input id="showOld" type="checkbox" style="width:auto;min-height:0"> งานเก่า</label>
+      <button id="refresh" class="btn ghost" style="flex:0 0 auto">รีเฟรช</button>
+    </div>
+    <div id="jobs"></div>
+  </section>
+</main>
+
+<script src="../js/config.js"></script>
+<script src="../js/api.js"></script>
+<script src="../js/admin.js"></script>
+</body>
+</html>
