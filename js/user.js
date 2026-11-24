@@ -1,10 +1,12 @@
 const $ = id => document.getElementById(id);
-const KEY = 'vb_profile';
+const KEY = 'vb_profile', SEEN = 'vb_seen';
 const pad = n => String(n).padStart(2, '0');
 
 const Store = {
   get() { try { return JSON.parse(localStorage.getItem(KEY)) || null; } catch (e) { return null; } },
-  set(p) { try { localStorage.setItem(KEY, JSON.stringify(p)); } catch (e) { /* ignore */ } }
+  set(p) { try { localStorage.setItem(KEY, JSON.stringify(p)); } catch (e) { /* ignore */ } },
+  getSeen() { try { return JSON.parse(localStorage.getItem(SEEN)); } catch (e) { return null; } },
+  setSeen(o) { try { localStorage.setItem(SEEN, JSON.stringify(o)); } catch (e) { /* ignore */ } }
 };
 
 const ICONS = { 'เอกสาร': '📄', 'พัสดุ': '📦', 'กิจกรรมอื่นๆ': '📝' };
@@ -18,7 +20,9 @@ const STEP_LABELS = ['ส่งคำขอแล้ว', 'ผู้จัดค
 
 let profile = Store.get();
 let svc = CONFIG.TYPES[0], when = 'now', focusField = 'dest';
-let mine = [], trackId = null, poll = null, view = 'Home';
+let mine = [], trackId = null, view = 'Home';
+let seen = Store.getSeen() || {}, seenFresh = Store.getSeen() === null;   // เครื่องใหม่: ไม่เด้งแจ้งเตือนย้อนหลัง
+let seenAtOpen = {}, prev = {};
 
 /* ---------- เวลา ---------- */
 function nowSlot() {            // ตอนนี้ + 10 นาที ปัดขึ้นทีละ 5 นาที
@@ -30,19 +34,15 @@ function nowSlot() {            // ตอนนี้ + 10 นาที ปั�
 /* ---------- สลับหน้า ---------- */
 function showView(v) {
   view = v;
-  ['Home', 'Act', 'Track'].forEach(n => $('v' + n).classList.toggle('hidden', n !== v));
-  $('bar').classList.toggle('hidden', v !== 'Home');
-  $('tabHome').classList.toggle('on', v === 'Home');
-  $('tabAct').classList.toggle('on', v !== 'Home');
-  clearInterval(poll);
-  if (v === 'Track') poll = setInterval(() => { if (!document.hidden) loadMine(); }, 15000);
+  document.body.dataset.view = v;
+  $('vHome').classList.toggle('hidden', v === 'Setup');
+  $('setup').classList.toggle('hidden', v !== 'Setup');
   window.scrollTo(0, 0);
 }
 
 function showSetup() {
-  ['vHome', 'vAct', 'vTrack', 'bar', 'tabs'].forEach(id => $(id).classList.add('hidden'));
-  clearInterval(poll);
-  $('setup').classList.remove('hidden');
+  closePanel();
+  showView('Setup');
   $('sDept').innerHTML = CONFIG.DEPTS.map(d => `<option>${UI.esc(d)}</option>`).join('');
   if (profile) { $('sName').value = profile.booker; $('sDept').value = profile.dept; $('sPhone').value = profile.phone || ''; }
   Api.get({ action: 'options' }).then(o => {
@@ -51,10 +51,8 @@ function showSetup() {
 }
 
 function showApp() {
-  $('setup').classList.add('hidden');
-  $('tabs').classList.remove('hidden'); $('editProfile').classList.remove('hidden');
-  $('who').textContent = profile.booker; $('whoDept').textContent = '';
-
+  $('bell').classList.remove('hidden'); $('editProfile').classList.remove('hidden');
+  $('who').textContent = profile.booker;
   $('origin').value = CONFIG.DEFAULT_ORIGIN;
   $('unit').innerHTML = CONFIG.UNITS.map(u => `<option>${UI.esc(u)}</option>`).join('');
   renderSvc(); setWhen('now'); renderSuggest();
@@ -78,43 +76,55 @@ function setWhen(w) {
 function renderSuggest() {
   const q = $(focusField).value.trim().toLowerCase();
   const recent = [...new Set(mine.map(m => m.dest).filter(Boolean))].slice(0, 5).map(v => ({ v, ic: '🕒', sub: 'ใช้ล่าสุด' }));
-  const seen = new Set();
+  const seenV = new Set();
   const list = recent.concat(CONFIG.PLACES.map(v => ({ v, ic: '📍', sub: '' })))
-    .filter(x => !seen.has(x.v) && seen.add(x.v))
+    .filter(x => !seenV.has(x.v) && seenV.add(x.v))
     .filter(x => !q || x.v.toLowerCase().includes(q))
     .slice(0, 6);
   $('suggest').innerHTML = list.map(x =>
     `<button type="button" class="item" data-v="${UI.esc(x.v)}"><span class="ic">${x.ic}</span><span>${UI.esc(x.v)}${x.sub ? `<small>${x.sub}</small>` : ''}</span></button>`).join('');
 }
 
-/* ---------- ข้อมูลของฉัน / ติดตามงาน ---------- */
+/* ---------- ข้อมูลของฉัน ---------- */
 async function loadMine() {
   try {
     mine = await Api.get({ action: 'mine', booker: profile.booker });
   } catch (e) {
     $('mine').innerHTML = `<p class="muted">โหลดรายการไม่ได้: ${UI.esc(e.message)}</p>`; return;
   }
+  if (seenFresh) { mine.forEach(x => { seen[x.requestId] = UI.stepOf(x); }); Store.setSeen(seen); seenFresh = false; }
+  mine.forEach(x => {                       // สถานะเปลี่ยนระหว่างเปิดหน้าอยู่ -> เด้งข้อความ
+    const s = UI.stepOf(x);
+    if (prev[x.requestId] !== undefined && s > prev[x.requestId]) UI.toast(x.dest + ': ' + HEAD[s][1]);
+    prev[x.requestId] = s;
+  });
+  if (!trackId && mine.length) trackId = (mine.find(m => UI.stepOf(m) < 3) || mine[0]).requestId;
+  renderMine(); renderTrack(); renderSuggest(); renderBell();
+}
+
+function renderMine() {
   $('mine').innerHTML = mine.length ? mine.slice(0, 20).map(x => {
     const [cls, label] = UI.statusOf(x);
-    return `<div class="card job" data-id="${UI.esc(x.requestId)}" style="cursor:pointer">
+    return `<div class="card job${x.requestId === trackId ? ' sel' : ''}" data-id="${UI.esc(x.requestId)}" style="cursor:pointer">
       <span class="badge ${cls}">${UI.esc(label)}</span>
       <h3>${UI.esc(x.dest)}</h3>
       <div class="meta">จาก ${UI.esc(x.origin)} · ${UI.esc(x.date)} ${UI.esc(x.time)} · ${UI.esc(x.type)}</div></div>`;
-  }).join('') : '<p class="muted">ยังไม่มีรายการ กดแท็บ "จองรถ" เพื่อเริ่มจอง</p>';
-  if (view === 'Home') renderSuggest();
-  if (view === 'Track') renderTrack();
+  }).join('') : '<p class="muted">ยังไม่มีรายการ</p>';
 }
 
 function renderTrack() {
   const x = mine.find(m => m.requestId === trackId);
-  if (!x) { $('trackBody').innerHTML = '<p class="muted">กำลังโหลด…</p>'; return; }
+  if (!x) {
+    $('trackBody').innerHTML = '<div class="card empty">ยังไม่มีงานที่ติดตาม<br>จองงานแรกได้เลย</div>';
+    return;
+  }
   const step = UI.stepOf(x), h = HEAD[step];
   const steps = STEP_LABELS.map((l, i) => `<li class="${i < step ? 'done' : i === step ? 'cur' : ''}">${l}</li>`).join('');
   const driver = step >= 2 ? `<div class="card driver"><div class="avatar">🛵</div>
       <div><b>${UI.esc(x.operator || 'กำลังระบุผู้ดำเนินการ')}</b>
       <div class="muted">${x.queue ? 'คิวที่ ' + UI.esc(x.queue) : 'ผู้ดำเนินการงานนี้'}</div></div></div>` : '';
   $('trackBody').innerHTML = `
-    <div class="track-head"><div class="big-ic">${h[0]}</div><h1>${h[1]}</h1><div class="muted">${h[2]}</div></div>
+    <div class="card track-head"><div class="big-ic">${h[0]}</div><h1>${h[1]}</h1><div class="muted">${h[2]}</div></div>
     <div class="card"><ol class="steps">${steps}</ol></div>
     ${driver}
     <div class="card">
@@ -122,24 +132,62 @@ function renderTrack() {
       <div class="pair"><span class="dot drop"></span><div><b>${UI.esc(x.dest)}</b></div></div>
       <div class="muted">${UI.esc(x.date)} ${UI.esc(x.time)} · ${UI.esc(x.type)} ${UI.esc(x.qty)} ${UI.esc(x.unit)}</div>
       ${x.note ? `<div class="muted">${UI.esc(x.note)}</div>` : ''}
+      <a class="maplink" href="${UI.esc(UI.mapsUrl(x))}" target="_blank" rel="noopener">🗺 เปิดเส้นทางใน Google Maps</a>
       <div class="muted" style="margin-top:6px">${UI.esc(x.requestId)}</div>
     </div>
     <button id="again" class="btn block">จองงานใหม่</button>`;
 }
 
-function openTrack(id) { trackId = id; showView('Track'); renderTrack(); loadMine(); }
+function openTrack(id) { trackId = id; renderMine(); renderTrack(); showView('Track'); loadMine(); }
+
+/* ---------- กระดิ่งแจ้งเตือน ---------- */
+const unread = () => mine.filter(x => (seen[x.requestId] === undefined ? -1 : seen[x.requestId]) < UI.stepOf(x));
+
+function renderBell() {
+  const n = unread().length;
+  $('badge').textContent = n > 9 ? '9+' : n;
+  $('badge').classList.toggle('hidden', n === 0);
+  if (!$('bellPanel').classList.contains('hidden')) renderNotif();
+}
+
+function renderNotif() {
+  $('notifList').innerHTML = mine.length ? mine.slice(0, 20).map(x => {
+    const s = UI.stepOf(x), h = HEAD[s];
+    const isNew = (seenAtOpen[x.requestId] === undefined ? -1 : seenAtOpen[x.requestId]) < s;
+    return `<button class="notif${isNew ? ' new' : ''}" data-id="${UI.esc(x.requestId)}"><span class="ic">${h[0]}</span>
+      <span class="nt"><b>${UI.esc(x.dest)}</b><small>${h[1]}${s >= 2 && x.operator ? ' · ' + UI.esc(x.operator) : ''} · ${UI.esc(x.date)} ${UI.esc(x.time)}</small></span>
+      ${isNew ? '<i class="dotnew"></i>' : ''}</button>`;
+  }).join('') : '<div class="empty">ยังไม่มีการแจ้งเตือน</div>';
+}
+
+function openPanel() {
+  seenAtOpen = Object.assign({}, seen);
+  $('bellPanel').classList.remove('hidden');
+  renderNotif();
+  mine.forEach(x => { seen[x.requestId] = UI.stepOf(x); });   // เปิดดูแล้ว = อ่านแล้ว
+  Store.setSeen(seen);
+  $('badge').classList.add('hidden');
+}
+function closePanel() { $('bellPanel').classList.add('hidden'); }
 
 /* ---------- events ---------- */
 $('saveProfile').onclick = () => {
   const booker = $('sName').value.trim();
   if (!booker) return UI.toast('กรุณาใส่ชื่อ', true);
+  if (!profile || profile.booker !== booker) { mine = []; trackId = null; prev = {}; seen = {}; seenFresh = true; }
   profile = { booker, dept: $('sDept').value, phone: $('sPhone').value.trim() };
   Store.set(profile); showApp();
 };
 $('editProfile').onclick = showSetup;
-$('tabHome').onclick = () => showView('Home');
-$('tabAct').onclick = () => { showView('Act'); loadMine(); };
-$('back').onclick = () => showView('Act');
+$('bell').onclick = e => { e.stopPropagation(); $('bellPanel').classList.contains('hidden') ? openPanel() : closePanel(); };
+$('closePanel').onclick = closePanel;
+document.addEventListener('click', e => {
+  if (!$('bellPanel').classList.contains('hidden') && !$('bellPanel').contains(e.target)) closePanel();
+});
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closePanel(); });
+$('notifList').addEventListener('click', e => { const b = e.target.closest('.notif'); if (b) { closePanel(); openTrack(b.dataset.id); } });
+
+$('back').onclick = () => showView('Home');
 $('trackBody').addEventListener('click', e => { if (e.target.id === 'again') showView('Home'); });
 $('mine').addEventListener('click', e => { const c = e.target.closest('.job'); if (c) openTrack(c.dataset.id); });
 
@@ -171,10 +219,15 @@ $('submit').onclick = async () => {
       note: $('note').value, qty: $('qty').value || '1', unit: $('unit').value,
       destContact: $('destContact').value, destPhone: $('destPhone').value, project: $('project').value
     } });
+    seen[r.requestId] = 0; Store.setSeen(seen);          // งานที่เพิ่งจองเอง ไม่นับเป็นแจ้งเตือนใหม่
     ['dest', 'note', 'qty', 'destContact', 'destPhone'].forEach(id => { $(id).value = ''; });
+    UI.toast('ส่งคำขอแล้ว');
     openTrack(r.requestId);
   } catch (e) { UI.toast(e.message, true); }
   finally { btn.disabled = false; btn.textContent = 'จองเลย'; }
 };
+
+// รีเฟรชสถานะเป็นระยะ เพื่อให้กระดิ่งเตือนเมื่อผู้จัดคิวเปลี่ยนสถานะ
+setInterval(() => { if (!document.hidden && profile && view !== 'Setup') loadMine(); }, 20000);
 
 profile ? showApp() : showSetup();

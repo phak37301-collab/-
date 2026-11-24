@@ -44,6 +44,12 @@ const UI = {
     draw();
     return { get: () => cur, set: v => { cur = v; draw(); } };
   },
+  // ลิงก์เปิดเส้นทางใน Google Maps (ไม่ต้องใช้ API key) — ถ้าในชีทมีลิงก์โลเคชั่นปลายทางจะใช้อันนั้นก่อน
+  mapsUrl(x) {
+    if (/^https?:\/\//.test(x.destLoc || '')) return x.destLoc;
+    return 'https://www.google.com/maps/dir/?api=1&travelmode=driving&origin=' + encodeURIComponent(x.origin || '') +
+      '&destination=' + encodeURIComponent(x.dest || '');
+  },
   // 0 รอรับเรื่อง, 1 รับเรื่องแล้ว, 2 จัดรถแล้ว, 3 เสร็จ
   stepOf(x) {
     if (x.status === 'แล้วเสร็จ') return 3;

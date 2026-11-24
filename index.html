@@ -7,86 +7,89 @@
 <title>จองรถ / ส่งเอกสาร</title>
 <link rel="stylesheet" href="css/app.css">
 </head>
-<body>
+<body data-view="Home">
 <header class="hero">
   <div class="hero-in">
-    <div class="hello">สวัสดี <b id="who">คุณ</b> <span id="whoDept"></span></div>
+    <div class="hero-top">
+      <div class="hello">สวัสดี <b id="who">คุณ</b></div>
+      <div class="hero-actions">
+        <button id="bell" class="icon-btn hidden" aria-label="การแจ้งเตือน">🔔<span id="badge" class="badge-dot hidden">0</span></button>
+        <button id="editProfile" class="icon-btn hidden" aria-label="เปลี่ยนชื่อ">⚙</button>
+      </div>
+    </div>
     <h1>จะส่งอะไรไปที่ไหน?</h1>
   </div>
-  <button id="editProfile" class="icon-btn hidden" aria-label="เปลี่ยนชื่อ">⚙</button>
 </header>
 
-<main>
-  <!-- ตั้งค่าครั้งแรก (จำไว้ในเครื่อง) -->
-  <section id="setup" class="card hidden" style="margin-top:-42px;position:relative">
-    <b>ครั้งแรก: เลือกชื่อและสังกัดของคุณ</b>
-    <label for="sName">ชื่อผู้จอง</label>
-    <input id="sName" list="nameList" autocomplete="off" placeholder="พิมพ์หรือเลือกชื่อ">
-    <datalist id="nameList"></datalist>
-    <label for="sDept">สังกัด</label>
-    <select id="sDept"></select>
-    <label for="sPhone">เบอร์โทร / ไลน์ (ไม่บังคับ)</label>
-    <input id="sPhone" placeholder="เบอร์โทรหรือ LINE ID">
-    <button id="saveProfile" class="btn block" style="margin-top:14px">บันทึก</button>
-  </section>
+<div id="bellPanel" class="panel hidden" role="dialog" aria-label="การแจ้งเตือน">
+  <div class="panel-head"><b>การแจ้งเตือน</b><button id="closePanel" class="x" aria-label="ปิด">✕</button></div>
+  <div id="notifList"></div>
+</div>
 
-  <!-- แท็บ: จองรถ -->
-  <section id="vHome" class="hidden">
-    <div class="card route">
-      <div class="route-row"><span class="dot pick"></span><input id="origin" placeholder="รับจากที่ไหน" autocomplete="off"></div>
-      <div class="route-row"><span class="dot drop"></span><input id="dest" placeholder="ส่งไปที่ไหน?" autocomplete="off"></div>
-    </div>
-    <div id="suggest" class="list"></div>
+<div class="layout">
+  <section id="colMain">
+    <!-- ตั้งค่าครั้งแรก (จำไว้ในเครื่อง) -->
+    <section id="setup" class="card hidden">
+      <b>ครั้งแรก: เลือกชื่อและสังกัดของคุณ</b>
+      <label for="sName">ชื่อผู้จอง</label>
+      <input id="sName" list="nameList" autocomplete="off" placeholder="พิมพ์หรือเลือกชื่อ">
+      <datalist id="nameList"></datalist>
+      <label for="sDept">สังกัด</label>
+      <select id="sDept"></select>
+      <label for="sPhone">เบอร์โทร / ไลน์ (ไม่บังคับ)</label>
+      <input id="sPhone" placeholder="เบอร์โทรหรือ LINE ID">
+      <button id="saveProfile" class="btn block" style="margin-top:14px">บันทึก</button>
+    </section>
 
-    <h2>ส่งอะไร</h2>
-    <div id="svc" class="svc"></div>
-
-    <h2>ส่งเมื่อไหร่</h2>
-    <div class="seg" id="when">
-      <button type="button" data-w="now" class="on">ด่วนตอนนี้</button>
-      <button type="button" data-w="later">นัดเวลา</button>
-    </div>
-    <div id="later" class="row hidden">
-      <div><label for="date">วันที่</label><input id="date" type="date"></div>
-      <div><label for="time">เวลารับ</label><input id="time" type="time"></div>
-    </div>
-
-    <label for="note">ฝากบอกคนจัดรถ (ถ้ามี)</label>
-    <textarea id="note" placeholder="เช่น ส่งถึงใคร ชั้นไหน ต้องรับสำเนากลับ"></textarea>
-
-    <details>
-      <summary>รายละเอียดเพิ่มเติม</summary>
-      <div class="row">
-        <div><label for="qty">จำนวน</label><input id="qty" inputmode="numeric" placeholder="1"></div>
-        <div><label for="unit">หน่วย</label><select id="unit"></select></div>
+    <!-- ฟอร์มจอง -->
+    <section id="vHome" class="hidden">
+      <div class="card route">
+        <div class="route-row"><span class="dot pick"></span><input id="origin" placeholder="รับจากที่ไหน" autocomplete="off"></div>
+        <div class="route-row"><span class="dot drop"></span><input id="dest" placeholder="ส่งไปที่ไหน?" autocomplete="off"></div>
       </div>
-      <label for="destContact">ผู้ติดต่อปลายทาง</label>
-      <input id="destContact">
-      <label for="destPhone">เบอร์ปลายทาง</label>
-      <input id="destPhone" inputmode="tel">
-      <label for="project">โครงการ</label>
-      <input id="project">
-    </details>
+      <div id="suggest" class="list"></div>
+
+      <h2>ส่งอะไร</h2>
+      <div id="svc" class="svc"></div>
+
+      <h2>ส่งเมื่อไหร่</h2>
+      <div class="seg" id="when">
+        <button type="button" data-w="now" class="on">ด่วนตอนนี้</button>
+        <button type="button" data-w="later">นัดเวลา</button>
+      </div>
+      <div id="later" class="row hidden">
+        <div><label for="date">วันที่</label><input id="date" type="date"></div>
+        <div><label for="time">เวลารับ</label><input id="time" type="time"></div>
+      </div>
+
+      <label for="note">ฝากบอกคนจัดรถ (ถ้ามี)</label>
+      <textarea id="note" placeholder="เช่น ส่งถึงใคร ชั้นไหน ต้องรับสำเนากลับ"></textarea>
+
+      <details>
+        <summary>รายละเอียดเพิ่มเติม</summary>
+        <div class="row">
+          <div><label for="qty">จำนวน</label><input id="qty" inputmode="numeric" placeholder="1"></div>
+          <div><label for="unit">หน่วย</label><select id="unit"></select></div>
+        </div>
+        <label for="destContact">ผู้ติดต่อปลายทาง</label>
+        <input id="destContact">
+        <label for="destPhone">เบอร์ปลายทาง</label>
+        <input id="destPhone" inputmode="tel">
+        <label for="project">โครงการ</label>
+        <input id="project">
+      </details>
+
+      <div class="sticky-bar"><button id="submit" class="btn big block">จองเลย</button></div>
+    </section>
   </section>
 
-  <!-- แท็บ: กิจกรรม -->
-  <section id="vAct" class="hidden">
-    <h2>รายการของฉัน</h2>
-    <div id="mine"><p class="muted">กำลังโหลด…</p></div>
-  </section>
-
-  <!-- ติดตามงาน -->
-  <section id="vTrack" class="hidden">
+  <!-- ติดตามงาน + รายการล่าสุด (มือถือ: โชว์เฉพาะตอนเปิดติดตาม / คอม: แสดงข้างฟอร์มตลอด) -->
+  <aside id="colSide">
     <button id="back" class="btn ghost" style="margin-bottom:8px">‹ กลับ</button>
     <div id="trackBody"></div>
-  </section>
-</main>
-
-<div id="bar" class="sticky-bar hidden"><button id="submit" class="btn big block">จองเลย</button></div>
-<nav id="tabs" class="tabs hidden">
-  <button id="tabHome" class="on"><span>🛵</span>จองรถ</button>
-  <button id="tabAct"><span>🕒</span>กิจกรรม</button>
-</nav>
+    <div id="mineBox"><h2>รายการล่าสุด</h2><div id="mine"></div></div>
+  </aside>
+</div>
 
 <script src="js/config.js"></script>
 <script src="js/api.js"></script>

@@ -14,6 +14,7 @@ function jobHtml(x) {
     <div class="route-txt">${UI.esc(x.origin)} → <b>${UI.esc(x.dest)}</b></div>
     <div class="meta">${UI.esc(x.type)} ${UI.esc(x.qty)} ${UI.esc(x.unit)}${contact ? ' · ' + UI.esc(contact) : ''}</div>
     ${x.note ? `<div class="meta">${UI.esc(x.note)}</div>` : ''}
+    <a class="maplink" href="${UI.esc(UI.mapsUrl(x))}" target="_blank" rel="noopener">🗺 เปิดเส้นทางใน Google Maps</a>
     <div class="row" style="margin-top:10px">
       <select class="op"><option value="">ผู้ดำเนินการ</option>${ops}</select>
       <input class="q" placeholder="คิวที่" inputmode="numeric" value="${UI.esc(x.queue)}">
