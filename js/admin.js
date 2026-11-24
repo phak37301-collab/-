@@ -11,7 +11,7 @@ function jobHtml(x) {
     <div><span class="badge ${cls}">${UI.esc(label)}</span>
       <span class="muted"> ${UI.esc(x.date)} ${UI.esc(x.time)}</span></div>
     <h3>${UI.esc(x.booker)} <span class="muted">${UI.esc(x.dept)}</span></h3>
-    <div class="route">${UI.esc(x.origin)} → <b>${UI.esc(x.dest)}</b></div>
+    <div class="route-txt">${UI.esc(x.origin)} → <b>${UI.esc(x.dest)}</b></div>
     <div class="meta">${UI.esc(x.type)} ${UI.esc(x.qty)} ${UI.esc(x.unit)}${contact ? ' · ' + UI.esc(contact) : ''}</div>
     ${x.note ? `<div class="meta">${UI.esc(x.note)}</div>` : ''}
     <div class="row" style="margin-top:10px">

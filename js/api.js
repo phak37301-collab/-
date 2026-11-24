@@ -44,6 +44,12 @@ const UI = {
     draw();
     return { get: () => cur, set: v => { cur = v; draw(); } };
   },
+  // 0 รอรับเรื่อง, 1 รับเรื่องแล้ว, 2 จัดรถแล้ว, 3 เสร็จ
+  stepOf(x) {
+    if (x.status === 'แล้วเสร็จ') return 3;
+    if (x.operator || x.queue) return 2;
+    return x.check ? 1 : 0;
+  },
   statusOf(x) {
     if (x.status === 'แล้วเสร็จ') return ['done', 'เสร็จแล้ว'];
     if (x.operator || x.queue) return ['assigned', 'จัดรถแล้ว: ' + [x.operator, x.queue && 'คิว ' + x.queue].filter(Boolean).join(' ')];
